@@ -15,10 +15,14 @@ QMAKE_CXXFLAGS += -std=c++11
 
 SOURCES += main.cpp\
         server.cpp \
-    connection.cpp
+    connection.cpp \
+    tcpserver.cpp \
+    connectionmanager.cpp
 
 HEADERS  += server.h \
     networkproperiesutils.hpp \
-    connection.h
+    connection.h \
+    tcpserver.h \
+    connectionmanager.h
 
 FORMS    += server.ui

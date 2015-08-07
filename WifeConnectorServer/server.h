@@ -7,7 +7,9 @@
 #include <QNetworkSession>
 #include <QTcpServer>
 #include <QTcpSocket>
-#include "connection.h"
+
+#include "tcpserver.h"
+
 namespace Ui {
 class Server;
 }
@@ -25,21 +27,16 @@ public slots:
     bool createTcpServer();
     void readMessage();
     void handleConnection();
-    void removeSocket(QTcpSocket *socket);
     void startServer();
     void stopServer();
-    void broadcastMessages(const QString &message);
-    void sendMessage(QTcpSocket *socket, const QString &message);
+    void broadcastMessage(const QString &message);
+    void sendMessage(Connection *socket, const QString &message);
 
 private:
     Ui::Server *ui;
     QNetworkSession *networkSession;
-    QTcpServer* tcpServer;
+    TCPServer* tcpServer;
     static const quint16 port = 53703;
-
-    QMap<unsigned int, Connection*> tcpSockets;
-    QTcpSocket* tcpSocket;
-
 
     QNetworkConfigurationManager networkManager;
     QNetworkConfiguration config;
@@ -56,7 +53,7 @@ private:
 private slots:
     void networkSessionStateChanged();
     void socketStateChanged(QAbstractSocket::SocketState state);
-    void processReadMessage(QTcpSocket *socket);
+    void processReadMessage(Connection *socket);
 };
 
 #endif // SERVER_H

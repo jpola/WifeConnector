@@ -4,22 +4,20 @@
 #include <QTcpSocket>
 #include <QHostAddress>
 #include <QDebug>
-class Connection : QTcpSocket
+class Connection : public QTcpSocket
 {
     Q_OBJECT
 
 public:
-    Connection(QObject *parent = 0);
+    Connection(int descriptor, QObject *parent = 0);
 
     unsigned int getKey();
-//    QTcpSocket* getSocket();
-//    const QTcpSocket* getSocket() const;
 
+    int descriptor;
 private:
-
-    //unique id of the socket;
     unsigned int key;
-//    QTcpSocket* socket;
+    static unsigned int counter;
+
     unsigned int rsHash(const QHostAddress &address, const quint16 port);
 
 };

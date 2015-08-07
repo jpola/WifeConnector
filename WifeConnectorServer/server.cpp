@@ -5,12 +5,6 @@
 
 #include "networkproperiesutils.hpp"
 
-//TODO: Alter this class to inherit from QTcpServer (parent);
-//Create server method comes to constructor;
-//Rest should be the same
-//Reimplement incommingCOnnection to accept Connection class instead of TcpSocket;
-// this will allow to upcast from connection to tcpSocket! :)
-
 Server::Server(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::Server),
@@ -29,7 +23,7 @@ void Server::startServer()
 {
     if( tcpServer == nullptr)
     {
-        tcpServer = new QTcpServer(this);
+        tcpServer = new TCPServer(this);
     }
 
     if (!tcpServer->isListening())
@@ -85,69 +79,58 @@ void Server::stopServer()
 void Server::handleConnection()
 {
 
-    Connection *s = dynamictcpServer->nextPendingConnection();
-    //Connection *c = new Connection(s);
-    if (!s)
+    auto *socket = tcpServer->nextPendingConnectionC();
+    if (!socket)
     {
         setLogInfo(tr("Unable create connection"));
         return;
     }
 
-    setLogInfo(tr("New connection: %1").arg(c->getKey()));
+    setLogInfo(tr("New connection: %1").arg(socket->getKey()));
 
+    connect(socket, SIGNAL(readyRead()), this, SLOT(readMessage()));
 
-
-    connect(c->getSocket(), SIGNAL(readyRead()), this, SLOT(readMessage()));
-
-    connect(c->getSocket(), SIGNAL(stateChanged(QAbstractSocket::SocketState)), this,
+    connect(socket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this,
             SLOT(socketStateChanged(QAbstractSocket::SocketState)));
-    tcpSockets.insert(c->getKey(), c);
-    setLogInfo(tr("Sockets size: %1").arg(tcpSockets.size()));
-    broadcastMessages("Yolo");
+
+    broadcastMessage("Yolo");
 }
 
 void Server::socketStateChanged(QAbstractSocket::SocketState state)
 {
-    QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
+    Connection *connection = qobject_cast<Connection *>(sender());
 
-    if (socket)
+    if (connection)
     {
-        int descriptor = socket->socketDescriptor();
-        setLogInfo(tr("Socket %1:%2 is changed").arg(socket->peerAddress().toString(),
-                                                 socket->peerPort()));
         if (state == QAbstractSocket::ClosingState)
         {
-            processReadMessage(socket);
-            removeSocket(socket);
+            setLogInfo(tr("Socket with descriptor %1 is about to be closed").
+                       arg(connection->descriptor));
+            processReadMessage(connection);
         }
     }
 }
 
-void Server::removeSocket(QTcpSocket *socket)
-{
-    if (socket)
-    {
-        int descriptor = socket->socketDescriptor();
-        setLogInfo(tr("Socket %1 is beeing deleted").arg(descriptor));
-        tcpSockets.remove(descriptor);
-        socket->deleteLater();
-    }
-}
 
-void Server::broadcastMessages(const QString &message)
+void Server::broadcastMessage(const QString &message)
 {
     QString t_message = "Test message from server";
 
-//    for( auto descriptor: tcpSockets.keys() )
-//    {
-//         QTcpSocket *socket = tcpSockets.value( descriptor );
-//         sendMessage(socket, t_message);
-//    }
+    for( auto descriptor: tcpServer->connectionManager.descriptors() )
+    {
+        Connection *connection =
+                tcpServer->connectionManager.getConnection(descriptor);
+        if(connection)
+        {
+            qDebug() << "Sending " << message << " to " << descriptor;
+            sendMessage(connection, t_message);
+        }
+    }
 }
 
-void Server::sendMessage(QTcpSocket *socket, const QString &message)
+void Server::sendMessage(Connection *connection, const QString &message)
 {
-    if(socket->state() == QAbstractSocket::ConnectedState)
+    if(connection->state() == QAbstractSocket::ConnectedState)
     {
         QByteArray block;
 
@@ -159,20 +142,18 @@ void Server::sendMessage(QTcpSocket *socket, const QString &message)
         out.device()->seek(0);
         out << (quint16)(block.size() - sizeof(quint16));
 
-        socket->write(block);
+        connection->write(block);
     }
 
 }
 
 void Server::readMessage()
 {
-    setLogInfo("Message is ready to read");
-    QTcpSocket *s = qobject_cast<QTcpSocket *>(sender());
-    processReadMessage(s);
-
+    Connection *connection = qobject_cast<Connection *>(sender());
+    processReadMessage(connection);
 }
 
-void Server::processReadMessage(QTcpSocket *socket)
+void Server::processReadMessage(Connection *socket)
 {
     QDataStream in(socket);
     in.setVersion(QDataStream::Qt_4_0);
@@ -374,7 +355,7 @@ bool Server::createTcpServer()
 
     strIpAddress = ipAddress.toString();
 
-    tcpServer = new QTcpServer(this);
+    tcpServer = new TCPServer(this);
     if (!tcpServer->listen(ipAddress, port))
     {
         setLogInfo(tr("Unable to start TCP server: %1")
