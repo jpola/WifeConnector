@@ -29,7 +29,7 @@ public slots:
     void handleConnection();
     void startServer();
     void stopServer();
-    void broadcastMessage(const QString &message);
+    void broadcastMessage();
     void sendMessage(Connection *socket, const QString &message);
 
 private:

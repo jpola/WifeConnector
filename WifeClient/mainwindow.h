@@ -26,11 +26,14 @@ private:
 
 private slots:
     void socketStateChanged();
-    void processMessage();
+    void processOutgoingMessage();
+    void processIncommingMessage();
     void sendMessage(const QString &message);
     void connectToServer();
     void disconnectFromServer();
     void updateGUI();
+    void displayOutgoingMessage(const QString &message);
+
 };
 
 #endif // MAINWINDOW_H

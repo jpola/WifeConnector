@@ -32,7 +32,19 @@
      </widget>
     </item>
     <item>
-     <widget class="QGroupBox" name="groupBox">
+     <widget class="QGroupBox" name="broadcastGroupBox">
+      <property name="title">
+       <string>Broadcast message</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QLineEdit" name="broadcastLineEdit"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="sControlsGroupBox">
       <property name="title">
        <string>Srver controls</string>
       </property>

@@ -23,8 +23,47 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(socket, SIGNAL(stateChanged(QAbstractSocket::SocketState)),
                      this, SLOT(socketStateChanged()));
 
-    QObject::connect(ui->inputLineEdit, SIGNAL(returnPressed()), this, SLOT(processMessage()));
+    QObject::connect(socket, SIGNAL(readyRead()),
+                     this, SLOT(processIncommingMessage()));
 
+    QObject::connect(ui->inputLineEdit, SIGNAL(returnPressed()),
+                     this, SLOT(processOutgoingMessage()));
+
+}
+
+void MainWindow::processIncommingMessage()
+{
+    if(socket == nullptr || socket->state() != QAbstractSocket::ConnectedState)
+    {
+        return;
+    }
+
+    QDataStream in(socket);
+    in.setVersion(QDataStream::Qt_4_0);
+
+    // This is flag which might be used somewhere else;
+    // Zero it if you want to block the rest of server message
+    quint16 blockSize(0);
+
+    if (blockSize == 0)
+    {
+
+        // Check how many bytes are waiting to be read;
+        // We are getting data in quint16
+        if (socket->bytesAvailable() < (int)sizeof(quint16))
+            return;
+        in >> blockSize;
+    }
+
+    // If there are less than already available then this is not
+    // what we should read;
+    if (socket->bytesAvailable() < blockSize)
+        return;
+
+    QString message;
+    in >> message;
+
+    ui->displayTextEdit->append("Server says: " + message);
 }
 
 void MainWindow::updateGUI()
@@ -64,12 +103,19 @@ void MainWindow::disconnectFromServer()
 
 }
 
-void MainWindow::processMessage()
+void MainWindow::processOutgoingMessage()
 {
-    QString msg = ui->inputLineEdit->text();
+    QString outMessage = ui->inputLineEdit->text();
 
-    sendMessage(msg);
-    ui->displayTextEdit->append("MSG: " + msg);
+    sendMessage(outMessage);
+    displayOutgoingMessage(outMessage);
+
+}
+
+void MainWindow::displayOutgoingMessage(const QString &message)
+{
+    ui->displayTextEdit->setTextColor(Qt::darkBlue);
+    ui->displayTextEdit->append(message);
     ui->inputLineEdit->clear();
 }
 
@@ -83,10 +129,10 @@ void MainWindow::sendMessage(const QString &message)
         QDataStream out(&block, QIODevice::WriteOnly);
 
         out.setVersion(QDataStream::Qt_4_0);
-        out << (quint16)0;
+        out << (quint16)0; //type of message
         out << message;
         out.device()->seek(0);
-        out << (quint16)(block.size() - sizeof(quint16));
+        out << (quint16)(block.size() - sizeof(quint16)); //size of the sent message without the indicator
 
         socket->write(block);
     }

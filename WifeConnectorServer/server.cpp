@@ -14,6 +14,7 @@ Server::Server(QWidget *parent) :
 
     QObject::connect(ui->startServerPushButton, SIGNAL(clicked(bool)), this, SLOT(startServer()));
     QObject::connect(ui->stopServerPushButton,  SIGNAL(clicked(bool)), this, SLOT(stopServer()));
+    QObject::connect(ui->broadcastLineEdit, SIGNAL(returnPressed()), this, SLOT(broadcastMessage()));
 
     networkSession = nullptr;
     tcpServer = nullptr;
@@ -93,7 +94,6 @@ void Server::handleConnection()
     connect(socket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this,
             SLOT(socketStateChanged(QAbstractSocket::SocketState)));
 
-    broadcastMessage("Yolo");
 }
 
 void Server::socketStateChanged(QAbstractSocket::SocketState state)
@@ -112,9 +112,9 @@ void Server::socketStateChanged(QAbstractSocket::SocketState state)
 }
 
 
-void Server::broadcastMessage(const QString &message)
+void Server::broadcastMessage()
 {
-    QString t_message = "Test message from server";
+    QString message = ui->broadcastLineEdit->text();
 
     for( auto descriptor: tcpServer->connectionManager.descriptors() )
     {
@@ -123,9 +123,11 @@ void Server::broadcastMessage(const QString &message)
         if(connection)
         {
             qDebug() << "Sending " << message << " to " << descriptor;
-            sendMessage(connection, t_message);
+            sendMessage(connection, message);
         }
     }
+
+    ui->broadcastLineEdit->clear();
 }
 
 void Server::sendMessage(Connection *connection, const QString &message)
